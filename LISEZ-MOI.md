@@ -25,23 +25,62 @@ partagé à brancher, ni migration à surveiller.
 
 ---
 
-## Étape 1 — Créer le dépôt GitHub
+## Étape 1 — Dépôt GitHub
 
-Le dossier n'est pas encore un dépôt Git. Sur cette machine :
+Le dépôt `git@github.com:romainlegall/koine.git` existe, le dépôt Git local est
+fait et le premier commit est prêt. **Il reste à le pousser**, ce qui suppose
+que GitHub accepte une clé SSH de cette machine — ce n'est pas encore le cas.
 
-```bash
-cd ~/Perso/04\ -\ Developements/jeu\ traductions\ v2
-git init -b main
-git add -A
-git commit -m "Koiné — jeux de mots et de langues"
+### Aucune clé SSH n'est enregistrée sur GitHub
+
+Les deux clés présentes (`id_ed25519` et `id_rsa`) sont refusées :
+
+```
+git@github.com: Permission denied (publickey).
 ```
 
-Créez ensuite un dépôt **privé** sur github.com, nommé `koine`, puis :
+Ni GitHub CLI, ni jeton dans le trousseau macOS. C'est le même blocage que
+plume avait rencontré sur cette machine.
+
+### Solution la plus courte
+
+Ajouter la clé `id_ed25519` au compte GitHub :
+
+1. Ouvrir <https://github.com/settings/ssh/new>
+2. Coller dans **Key** le contenu de :
+
+   ```bash
+   cat ~/.ssh/id_ed25519.pub
+   ```
+
+   ```
+   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIA5uc3bGIQaAW7E6hQ1mBFf1bXZQ0LPAm1bMXcdkRoR legall.romain@gmail.com
+   ```
+
+3. Titre libre (`MacBook`), puis **Add SSH key**.
+
+Vérifier, puis pousser :
 
 ```bash
-git remote add origin git@github.com:romainlegall/koine.git
+ssh -T git@github.com          # doit répondre « Hi legall! ... »
+cd ~/Perso/04\ -\ Developements/jeu\ traductions\ v2
 git push -u origin main
 ```
+
+### À défaut
+
+Installer GitHub CLI, qui gère l'authentification tout seul :
+
+```bash
+brew install gh
+gh auth login
+cd ~/Perso/04\ -\ Developements/jeu\ traductions\ v2
+git remote set-url origin https://github.com/romainlegall/koine.git
+git push -u origin main
+```
+
+Avec une authentification par HTTPS, le jeton de l'étape 2 reste nécessaire à la
+construction de l'image sur le NAS, puisque le `Dockerfile` clone le dépôt.
 
 ## Étape 2 — Copier la configuration sur le NAS
 
@@ -156,6 +195,12 @@ conteneur passe `healthy` quand l'application répond. En cas de souci :
 docker logs koine
 docker inspect --format='{{.State.Health.Status}}' koine
 ```
+
+**Les langues ne sont pas versionnées.** `data/decks.json` est ignoré par Git :
+au premier démarrage sur le NAS, les decks s'afficheront sans langue
+associée. Elles se règlent une fois pour toutes dans l'éditeur de chaque deck
+(« Langues » en haut). C'est volontaire : ce fichier vit dans le volume, donc
+une valeur commitée ici ne correspondrait pas à celle du NAS.
 
 **Plafond mémoire.** 256 Mo, posés dans `docker-compose.yml`. C'est une
 application de jeu : si un conteneur se met à boucler, il ne doit pas ronger le
