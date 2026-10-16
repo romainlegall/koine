@@ -51,8 +51,13 @@ else
     jaune "$REPO_DIR n'est pas un clone git"
     echo "         Ce n'est pas bloquant pour le premier deploiement : l'image"
     echo "         se contente de cloner le depot GitHub. Mais ensuite, pour"
-    echo "         redployer apres une modification :"
-    echo "           cd $REPO_DIR && $GIT clone <url-du-depot>"
+    echo "         redeployer apres une modification :"
+    if [ -n "$GIT" ]; then
+        echo "           cd $REPO_DIR && $GIT clone <url-du-depot>"
+    else
+        echo "           cd $REPO_DIR && git clone <url-du-depot>"
+        echo "           (git n'est pas encore installe sur le NAS)"
+    fi
 fi
 echo
 
@@ -70,14 +75,18 @@ if [ -f "$ENV_FILE" ]; then
     JETON=$(grep -E '^GITHUB_TOKEN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2)
     BRANCHE=$(grep -E '^GITHUB_BRANCH=' "$ENV_FILE" 2>/dev/null | cut -d= -f2)
 
-    if [ -z "$REPO_VIDE" ] || [ "$REPO_VIDE" = "romainlegall/koine" ]; then
-        rouge "GITHUB_REPO est encore a la valeur d'exemple"
+    # On compare au gabarit volontairement evident, pas a la vraie valeur :
+    # mettre le depot attendu dans l'exemple rendrait le test incapable de
+    # distinguer « non rempli » de « correctement rempli ».
+    if [ -z "$REPO_VIDE" ] || [ "$REPO_VIDE" = "VOTRE-COMPTE/koine" ]; then
+        rouge "GITHUB_REPO est encore a la valeur d'exemple ($REPO_VIDE)"
+        echo "         Renseigner le depot : https://github.com/<votre-compte>/<votre-depot>"
     else
         vert "GITHUB_REPO = $REPO_VIDE"
     fi
 
     if [ -z "$JETON" ]; then
-        if [ "$REPO_VIDE" = "romainlegall/koine" ]; then
+        if [ -z "$REPO_VIDE" ] || [ "$REPO_VIDE" = "VOTRE-COMPTE/koine" ]; then
             jaune "GITHUB_TOKEN vide : indispensable si le depot est prive"
         else
             jaune "GITHUB_TOKEN vide : normal si le depot est public"
