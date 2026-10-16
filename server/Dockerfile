@@ -15,9 +15,13 @@ ENV NODE_ENV=production \
     PORT=4100
 
 # git est indispensable : c'est lui qui récupère le code au build.
+# ca-certificates ne l'est pas moins : sans lui, git ne peut pas vérifier le
+# certificat de github.com et le clone echoue sur « server certificate
+# verification failed ».
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
       git \
+      ca-certificates \
       tzdata \
     && rm -rf /var/lib/apt/lists/*
 

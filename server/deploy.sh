@@ -16,7 +16,34 @@ LOG_FILE="$REPO_DIR/deploy.log"
 . "$COMPOSE_DIR/lib.sh"
 
 log() {
-    echo "$1" | tee -a "$LOG_FILE"
+    # Docker affiche la commande de build, et le jeton y est developpe en clair :
+    # sans ce masquage, il atterrit dans deploy.log en lecture simple. Tout ce
+    # qui passe par docker-compose doit donc etre filtre.
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        echo "$1" | sed "s/${GITHUB_TOKEN}/JETON_CAVIARDE/g" | tee -a "$LOG_FILE"
+    else
+        echo "$1" | tee -a "$LOG_FILE"
+    fi
+}
+
+# docker-compose sort aussi beaucoup de choses sur stderr (progression du
+# build, diagnostics). Meme filtre, meme raison.
+#
+# -p koine est obligatoire : sans lui, compose deduit le nom de projet du
+# dossier courant. Les quatre applications du NAS se ressemblent
+# (/volume1/docker/<app>/server/docker-compose.yml), donc un deploiement lance
+# depuis le dossier server/ aboutit au nom "server" pour tout le monde — et le
+# "down" de l'un arrete alors les conteneurs de l'autre. C'est deja arrive.
+docker_compose() {
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        docker-compose -p koine --env-file "$COMPOSE_DIR/env.production" \
+            -f "$COMPOSE_DIR/docker-compose.yml" "$@" 2>&1 |
+            sed "s/${GITHUB_TOKEN}/JETON_CAVIARDE/g"
+        return "${PIPESTATUS[0]}"
+    fi
+    docker-compose -p koine --env-file "$COMPOSE_DIR/env.production" \
+        -f "$COMPOSE_DIR/docker-compose.yml" "$@" 2>&1
+    return $?
 }
 
 # Charge les variables du fichier d'environnement, sans les exporter toutes :
@@ -83,11 +110,9 @@ else
     log ""
 fi
 
-log "Arrêt des conteneurs..."
-docker-compose --env-file "$COMPOSE_DIR/env.production" -f "$COMPOSE_DIR/docker-compose.yml" down 2>&1 | tee -a "$LOG_FILE"
-
 # Le redéploiement ne doit jamais perdre la progression : on refuse de
-# continuer si le volume a disparu entre-temps.
+# continuer si le volume a disparu entre-temps. Ce controle precede le "down",
+# sinon on aurait deja arrêté le conteneur pour rien.
 if [ ! -d "$REPO_DIR/data/decks" ]; then
     log "ERREUR : $REPO_DIR/data/decks est introuvable."
     log "        Créer le dossier et y placer au moins un CSV, sinon le"
@@ -95,8 +120,11 @@ if [ ! -d "$REPO_DIR/data/decks" ]; then
     exit 1
 fi
 
+log "Arrêt des conteneurs..."
+docker_compose down | tee -a "$LOG_FILE"
+
 log "Reconstruction de l'image (quelques minutes sur Synology)..."
-docker-compose --env-file "$COMPOSE_DIR/env.production" -f "$COMPOSE_DIR/docker-compose.yml" build --no-cache 2>&1 | tee -a "$LOG_FILE"
+docker_compose build --no-cache | tee -a "$LOG_FILE"
 
 if [ ${PIPESTATUS[0]:-0} -ne 0 ]; then
     log "ERREUR : la construction a echoue. Voir les lignes ci-dessus."
@@ -105,11 +133,11 @@ if [ ${PIPESTATUS[0]:-0} -ne 0 ]; then
 fi
 
 log "Démarrage..."
-docker-compose --env-file "$COMPOSE_DIR/env.production" -f "$COMPOSE_DIR/docker-compose.yml" up -d 2>&1 | tee -a "$LOG_FILE"
+docker_compose up -d | tee -a "$LOG_FILE"
 
 sleep 4
 log "Journaux du conteneur..."
-docker-compose --env-file "$COMPOSE_DIR/env.production" -f "$COMPOSE_DIR/docker-compose.yml" logs --tail=25 2>&1 | tee -a "$LOG_FILE"
+docker_compose logs --tail=25 | tee -a "$LOG_FILE"
 
 log "Deploiement termine. Koiné devrait repondre sur le port 3005."
 log "=== Fin : $(date) ==="
