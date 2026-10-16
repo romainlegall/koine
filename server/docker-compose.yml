@@ -1,0 +1,36 @@
+version: "3.9"
+
+# Koiné — jeux de mots et de langues sur Synology.
+#
+# Pas de base de données, contrairement à plume, gestion_locative et
+# tresor_prive : tout tient dans des fichiers JSON sous data/. Le NAS n'a donc
+# qu'un seul volume à monter.
+#
+# Ce volume est capital. Sans lui, chaque docker-compose down effacerait la
+# progression et les decks ajoutés depuis l'interface.
+#
+# Volumes : un dossier local du NAS, jamais un partage SMB.
+#   /volume1/docker/koine/data  les decks et la progression
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_REPO: ${GITHUB_REPO}
+        GITHUB_BRANCH: ${GITHUB_BRANCH}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: koine
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4100
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - /volume1/docker/koine/data:/app/data
+    ports:
+      - "3005:4100"
+restart: unless-stopped
+    # Plafond volontairement bas : c'est une application de jeu, pas un service
+    # exposé. Si un conteneur se met à boucler, il ne doit pas ronger le NAS.
+    mem_limit: 256m

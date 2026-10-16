@@ -1,0 +1,17 @@
+{
+  "name": "koine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Koiné — jeux de mots et de langues : entraînement à la traduction et jeu des pays",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/run.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}

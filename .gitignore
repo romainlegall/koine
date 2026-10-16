@@ -1,0 +1,20 @@
+# Dossier personnel macOS
+.DS_Store
+
+# Les secrets de production restent sur le NAS, jamais dans le depot
+/server/env.production
+/.env
+
+# Etat du jeu : propre a chaque machine
+/data/progress.json
+/data/history.json
+/data/decks.json
+
+# Journal de deploiement ecrit sur le NAS
+/deploy.log
+
+# Dependances
+/node_modules
+
+# Les decks de data/decks/ sont volontairement versionnes : ils servent de
+# contenu de depart au premier demarrage sur le NAS.
