@@ -13,7 +13,7 @@ données.
 
 | Sur votre Mac | Sur le NAS |
 |---|---|
-| `~/Perso/04 - Developements/jeu traductions v2` (le code) | `/volume1/docker/koine/server/` |
+| `~/Perso/04 - Developements/koine` (le code) | `/volume1/docker/koine/server/` |
 | dépôt GitHub | `/volume1/docker/koine/data/` (decks + progression) |
 
 L'image Docker **clone le code depuis GitHub** pendant la construction. Le NAS
@@ -63,7 +63,7 @@ Vérifier, puis pousser :
 
 ```bash
 ssh -T git@github.com          # doit répondre « Hi legall! ... »
-cd ~/Perso/04\ -\ Developements/jeu\ traductions\ v2
+cd ~/Perso/04\ -\ Developements/koine
 git push -u origin main
 ```
 
@@ -74,7 +74,7 @@ Installer GitHub CLI, qui gère l'authentification tout seul :
 ```bash
 brew install gh
 gh auth login
-cd ~/Perso/04\ -\ Developements/jeu\ traductions\ v2
+cd ~/Perso/04\ -\ Developements/koine
 git remote set-url origin https://github.com/romainlegall/koine.git
 git push -u origin main
 ```
@@ -85,7 +85,7 @@ construction de l'image sur le NAS, puisque le `Dockerfile` clone le dépôt.
 ## Étape 2 — Copier la configuration sur le NAS
 
 ```bash
-scp -r ~/Perso/04\ -\ Developements/jeu\ traductions\ v2/server \
+scp -r ~/Perso/04\ -\ Developements/koine/server \
       romain@<ip-du-nas>:/volume1/docker/koine/
 ssh romain@<ip-du-nas>
 mkdir -p /volume1/docker/koine/data/decks
