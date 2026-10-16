@@ -55,6 +55,7 @@
           <li>Une manche se termine quand il ne reste qu'un joueur, quand la lettre n'a plus de pays, ou quand tout le monde a passé.</li>
           <li>Tout le monde rejoue à la manche suivante. Gagne celui qui survit au plus de manches.</li>
           <li>Un pays déjà cité ne peut pas être rejoué, même plus tard.</li>
+          <li>Si quelqu'un bloque, un indice arrive après 30 secondes : continent, capitale, puis les deux premières lettres.</li>
         </ul>
       </section>`;
   }
@@ -151,7 +152,106 @@
       ${tableHtml(game)}`;
   }
 
-  function boardHtml(game) {
+  /* ------------------------------------------------------------------ */
+  /* Indices progressifs                                                 */
+  /* ------------------------------------------------------------------ */
+
+  // Secondes avant chaque indice : continent, puis capitale, puis les deux
+  // premières lettres d'un pays encore disponible pour la lettre.
+  const DELAI_INDICES = [30, 60, 90];
+
+  const minuterie = { cle: null, depart: 0, reveles: 0, handle: null };
+
+function arreterMinuterie() {
+  if (minuterie.handle) {
+    clearInterval(minuterie.handle);
+    minuterie.handle = null;
+  }
+}
+
+/**
+ * Reprend ou relance la minuterie. La clé renvoyée par le serveur change dès
+ * que le joueur, la lettre ou le nombre de pays disponibles change : c'est ce
+ * qui permet de ne pas repartir de zéro sur un simple re-rendu.
+ */
+function armerIndices(root, game) {
+  arreterMinuterie();
+  if (game.statut !== 'playing' || !game.indice) return;
+
+  if (minuterie.cle !== game.indiceCle) {
+    minuterie.cle = game.indiceCle;
+    minuterie.depart = Date.now();
+    minuterie.reveles = 0;
+  }
+  peindreIndices(root, game);
+
+  minuterie.handle = setInterval(() => {
+    const ecoulees = Math.floor((Date.now() - minuterie.depart) / 1000);
+    const dus = DELAI_INDICES.filter((d) => ecoulees >= d).length;
+    if (dus > minuterie.reveles) {
+      minuterie.reveles = dus;
+      peindreIndices(root, game);
+    } else {
+      actualiserCompteARebours(root);
+    }
+    if (minuterie.reveles >= DELAI_INDICES.length) arreterMinuterie();
+  }, 1000);
+}
+
+function peindreIndices(root, game) {
+  const zone = root.querySelector('#indices');
+  if (!zone) return;
+  const i = game.indice;
+  const reveles = minuterie.reveles;
+
+  const lignes = [];
+  if (reveles >= 1) lignes.push(['Continent', i.continent]);
+  if (reveles >= 2) lignes.push(['Capitale', i.capitale]);
+  if (reveles >= 3) lignes.push(['Début', `${i.debut}…`]);
+
+  zone.innerHTML = `
+    <p class="hints-note">Ces indices concernent un pays encore disponible. Vous pouvez aussi en proposer un autre de la même lettre.</p>
+    ${
+      lignes.length
+        ? `<div class="hints-liste">${lignes
+            .map(([label, valeur]) => `<span class="hint"><b>${e(label)}</b> ${e(valeur)}</span>`)
+            .join('')}</div>`
+        : ''
+    }
+    <div class="hints-attente">
+      <span id="hint-countdown"></span>
+      ${
+        reveles < DELAI_INDICES.length
+          ? `<button class="btn-sm btn-ghost" id="donner-indice">Révéler maintenant</button>`
+          : ''
+      }
+    </div>`;
+
+  const bouton = zone.querySelector('#donner-indice');
+  if (bouton) {
+    bouton.addEventListener('click', () => {
+      if (minuterie.reveles < DELAI_INDICES.length) {
+        minuterie.reveles += 1;
+        peindreIndices(root, game);
+      }
+    });
+  }
+  actualiserCompteARebours(root);
+}
+
+function actualiserCompteARebours(root) {
+  const node = root.querySelector('#hint-countdown');
+  if (!node) return;
+  if (minuterie.reveles >= DELAI_INDICES.length) {
+    node.textContent = 'Tous les indices sont donnés.';
+    return;
+  }
+  const ecoulees = Math.floor((Date.now() - minuterie.depart) / 1000);
+  const prochain = DELAI_INDICES.find((d) => d > ecoulees) - ecoulees;
+  node.innerHTML = `Indice dans <b>${Math.max(0, prochain)} s</b>`;
+}
+
+function boardHtml(game) {
     if (game.statut === 'over') return endHtml(game);
 
     return `
@@ -166,8 +266,10 @@
       <div class="letter-card">
         <div class="prompt-direction">Trouve un pays commençant par</div>
         <div class="letter">${e(game.lettre)}</div>
-        <div class="turn-line">Au tour de <strong>${e(game.tour ? game.tour.nom : '—')}</strong></div>
+      <div class="turn-line">Au tour de <strong>${e(game.tour ? game.tour.nom : '—')}</strong></div>
       </div>
+
+      <section class="card hints-card" id="indices" aria-live="polite" aria-label="Indices"></section>
 
       <div class="seat-grid">${playersHtml(game)}</div>
 
@@ -276,6 +378,7 @@ function bindRecap(root, game) {
 /* ------------------------------------------------------------------ */
 
 function render(root, game, evenement) {
+  arreterMinuterie();
   state.game = game;
   // le verrou sert a empiler deux appels avant reponse ; une fois l'ecran
   // reconstruit il doit etre libere, sinon les boutons suivants ne font rien
@@ -294,6 +397,7 @@ function render(root, game, evenement) {
 
   const focus = game.statut === 'playing' && !state.busy;
   root.innerHTML = `<div class="play play-pays">${boardHtml(game)}</div>`;
+  armerIndices(root, game);
   if (focus) {
     const input = root.querySelector('#pays-saisie');
     if (input) input.focus();

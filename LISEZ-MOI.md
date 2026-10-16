@@ -175,7 +175,7 @@ déposez simplement le CSV dans `/volume1/docker/koine/data/decks/` puis
 redémarrez le conteneur.
 
 **Le build lance les tests.** `npm test` s'exécute pendant la construction de
-l'image. Les 107 tests couvrent les seuils de notation, le déroulé des manches et
+l'image. Les 114 tests couvrent les seuils de notation, le déroulé des manches et
 le format CSV ; une régression arrête le déploiement avant d'atteindre le NAS.
 Comptez une minute de plus sur le Synology.
 

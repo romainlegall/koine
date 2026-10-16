@@ -117,6 +117,9 @@ const jeu = require('../src/game/countries');
 
 console.log('\nliste de pays');
 check('au moins 190 pays', pays.PAYS.length >= 190, true);
+check('chaque pays a un continent et une capitale', Object.keys(pays.INFOS).length, pays.PAYS.length);
+check('capitale du Danemark', pays.infosDe('Danemark').capitale, 'Copenhague');
+check('continent de la Gambie', pays.infosDe('Gambie').continent, 'Afrique');
 check('lettre W exclue (aucun pays)', pays.paysPour('w').length, 0);
 check('lettre X exclue (aucun pays)', pays.paysPour('x').length, 0);
 check('lettre K a des pays', pays.paysPour('k').includes('Kiribati'), true);
@@ -142,6 +145,11 @@ console.log('\ndéroulement de la manche');
 const g = jeu.creer({ joueurs: ['Alice', 'Bob', 'Charly'], manches: 5 });
 g.lettre = 'S'; // 21 pays : la manche ne peut pas s'épuiser d'elle-même
 check('tour du premier joueur', jeu.vue(g).tour.nom, 'Alice');
+const indice = jeu.vue(g).indice;
+check('indice donne un continent', typeof indice.continent, 'string');
+check('indice donne une capitale', typeof indice.capitale, 'string');
+check('indice donne les deux premières lettres', [...indice.debut].length, 2);
+check('indice ne révèle pas le nom du pays', Object.hasOwn(indice, 'nom'), false);
 
 check('Alice répond', jeu.repondre(g, 'Senegal').ok, true);
 check('pays mémorisé (forme de référence accentuée)', g.used, ['Sénégal']);

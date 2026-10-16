@@ -419,6 +419,44 @@ td .row-actions { display: flex; gap: 5px; justify-content: flex-end; }
 
 .play-pays { max-width: 720px; }
 
+.hints-card {
+  min-height: 58px;
+  padding: 12px 14px;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+.hints-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.hints-note {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.hint {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.88rem;
+}
+.hint b { color: var(--accent); }
+.hints-attente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.hints-attente b { color: var(--accent); font-variant-numeric: tabular-nums; }
+
 .letter-card {
   padding: 26px 24px;
   text-align: center;

@@ -17,7 +17,7 @@
 
 const crypto = require('crypto');
 
-const { LETTRES, trouver, paysPour, plusProche, FORME } = require('../countries');
+const { LETTRES, trouver, paysPour, plusProche, infosDe, FORME } = require('../countries');
 
 const LETTRE_DU_JEU = (l) => FORME(l).charAt(0);
 
@@ -320,6 +320,35 @@ function cloreManche(game, elimines = [], raison = '') {
   game.coups = [];
 }
 
+/**
+ * Indices de la manche en cours.
+ *
+ * Le jeu des pays n'a pas de cible unique : n'importe quel pays de la lettre
+ * qui n'a pas encore été cité est accepté. Un indice ne peut donc pas porter
+ * sur « le » pays attendu — il porte sur un pays candidat encore disponible,
+ * ce qui aide le joueur bloqué à en trouver un.
+ *
+ * Le choix est déterministe (le premier disponible par ordre alphabétique) :
+ * entre le continent à 30 s, la capitale à 60 s et les lettres à 90 s, c'est
+ * le même pays qui est décrit, sinon l'indice ne serait pas cumulable.
+ *
+ * Le nom n'est jamais transmis : c'est lui que le joueur doit trouver.
+ */
+function indiceCourant(game) {
+  if (!game.lettre) return null;
+  const disponibles = disponiblesPour(game.lettre, game.used);
+  if (!disponibles.length) return null;
+
+  const candidat = [...disponibles].sort()[0];
+  const info = infosDe(candidat);
+  return {
+    continent: info.continent,
+    capitale: info.capitale,
+    debut: [...candidat].slice(0, 2).join(''),
+    restants: disponibles.length,
+  };
+}
+
 /** Vue destinee au client : jamais d'etat interne inutile. */
 function vue(game) {
   const courant = game.statut === 'playing' ? joueurCourant(game) : null;
@@ -330,6 +359,11 @@ function vue(game) {
     manchesMax: game.manchesMax,
     lettre: game.lettre,
     tour: courant ? { id: courant.id, nom: courant.nom } : null,
+    // Sert au client à savoir s'il doit relancer sa minuterie d'indices ou la
+    // reprendre : l'indice ne change pas tant que le joueur, la lettre et le
+    // nombre de pays disponibles sont inchangés.
+    indiceCle: courant ? `${courant.id}|${game.lettre}|${indiceCourant(game)?.restants ?? 0}` : null,
+    indice: game.statut === 'playing' ? indiceCourant(game) : null,
     restants: game.joueurs.filter((j) => estActif(game, j)).length,
     disponibles: game.lettre ? disponiblesPour(game.lettre, game.used).length : 0,
     joueurs: game.joueurs.map((j) => ({
