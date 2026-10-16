@@ -456,6 +456,21 @@ td .row-actions { display: flex; gap: 5px; justify-content: flex-end; }
   font-size: 0.82rem;
 }
 .hints-attente b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.hints-separator { margin: 0 5px; color: var(--border); }
+.timeout-prompt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 14px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--close) 12%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--close) 35%, var(--border));
+}
+.timeout-prompt > strong { color: var(--close); }
+.timeout-prompt > span { color: var(--muted); font-size: 0.88rem; }
+.timeout-prompt .row { margin-left: auto; }
 
 .letter-card {
   padding: 26px 24px;

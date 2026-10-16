@@ -148,7 +148,7 @@ check('tour du premier joueur', jeu.vue(g).tour.nom, 'Alice');
 const indice = jeu.vue(g).indice;
 check('indice donne un continent', typeof indice.continent, 'string');
 check('indice donne une capitale', typeof indice.capitale, 'string');
-check('indice donne les deux premières lettres', [...indice.debut].length, 2);
+check('indice permet de révéler quatre lettres', [...indice.debut].length, 4);
 check('indice ne révèle pas le nom du pays', Object.hasOwn(indice, 'nom'), false);
 
 check('Alice répond', jeu.repondre(g, 'Senegal').ok, true);

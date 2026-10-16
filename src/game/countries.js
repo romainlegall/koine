@@ -344,7 +344,7 @@ function indiceCourant(game) {
   return {
     continent: info.continent,
     capitale: info.capitale,
-    debut: [...candidat].slice(0, 2).join(''),
+    debut: [...candidat].slice(0, 4).join(''),
     restants: disponibles.length,
   };
 }

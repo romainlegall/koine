@@ -55,7 +55,8 @@
           <li>Une manche se termine quand il ne reste qu'un joueur, quand la lettre n'a plus de pays, ou quand tout le monde a passé.</li>
           <li>Tout le monde rejoue à la manche suivante. Gagne celui qui survit au plus de manches.</li>
           <li>Un pays déjà cité ne peut pas être rejoué, même plus tard.</li>
-          <li>Si quelqu'un bloque, un indice arrive après 30 secondes : continent, capitale, puis les deux premières lettres.</li>
+          <li>Indices à 30, 60, 90, 120 et 150 secondes : continent, capitale, puis de 2 à 4 lettres.</li>
+          <li>Le tour dure 3 minutes ; à la fin, l'app propose de passer ou de continuer.</li>
         </ul>
       </section>`;
   }
@@ -156,11 +157,18 @@
   /* Indices progressifs                                                 */
   /* ------------------------------------------------------------------ */
 
-  // Secondes avant chaque indice : continent, puis capitale, puis les deux
-  // premières lettres d'un pays encore disponible pour la lettre.
-  const DELAI_INDICES = [30, 60, 90];
+  // Secondes avant les indices : continent, capitale, puis 2, 3 et 4 lettres.
+  const DELAI_INDICES = [30, 60, 90, 120, 150];
+  const DUREE_TOUR = 180;
 
-  const minuterie = { cle: null, depart: 0, reveles: 0, handle: null };
+  const minuterie = {
+    cle: null,
+    depart: 0,
+    reveles: 0,
+    tempsEcoule: false,
+    continuerApresTemps: false,
+    handle: null,
+  };
 
 function arreterMinuterie() {
   if (minuterie.handle) {
@@ -182,19 +190,26 @@ function armerIndices(root, game) {
     minuterie.cle = game.indiceCle;
     minuterie.depart = Date.now();
     minuterie.reveles = 0;
+    minuterie.tempsEcoule = false;
+    minuterie.continuerApresTemps = false;
   }
   peindreIndices(root, game);
 
   minuterie.handle = setInterval(() => {
     const ecoulees = Math.floor((Date.now() - minuterie.depart) / 1000);
     const dus = DELAI_INDICES.filter((d) => ecoulees >= d).length;
+    let changement = false;
     if (dus > minuterie.reveles) {
       minuterie.reveles = dus;
-      peindreIndices(root, game);
-    } else {
-      actualiserCompteARebours(root);
+      changement = true;
     }
-    if (minuterie.reveles >= DELAI_INDICES.length) arreterMinuterie();
+    if (ecoulees >= DUREE_TOUR && !minuterie.tempsEcoule) {
+      minuterie.tempsEcoule = true;
+      changement = true;
+    }
+    if (changement) peindreIndices(root, game);
+    else actualiserCompteARebours(root);
+    if (ecoulees >= DUREE_TOUR) arreterMinuterie();
   }, 1000);
 }
 
@@ -207,7 +222,11 @@ function peindreIndices(root, game) {
   const lignes = [];
   if (reveles >= 1) lignes.push(['Continent', i.continent]);
   if (reveles >= 2) lignes.push(['Capitale', i.capitale]);
-  if (reveles >= 3) lignes.push(['Début', `${i.debut}…`]);
+  if (reveles >= 3) {
+    const nbLettres = reveles - 1;
+    const debut = [...i.debut].slice(0, nbLettres).join('');
+    lignes.push([`${nbLettres} premières lettres`, `${debut}…`]);
+  }
 
   zone.innerHTML = `
     <p class="hints-note">Ces indices concernent un pays encore disponible. Vous pouvez aussi en proposer un autre de la même lettre.</p>
@@ -221,11 +240,12 @@ function peindreIndices(root, game) {
     <div class="hints-attente">
       <span id="hint-countdown"></span>
       ${
-        reveles < DELAI_INDICES.length
+        reveles < DELAI_INDICES.length && !minuterie.tempsEcoule
           ? `<button class="btn-sm btn-ghost" id="donner-indice">Révéler maintenant</button>`
           : ''
       }
-    </div>`;
+    </div>
+    <div id="tour-expire" class="tour-expire"></div>`;
 
   const bouton = zone.querySelector('#donner-indice');
   if (bouton) {
@@ -242,13 +262,39 @@ function peindreIndices(root, game) {
 function actualiserCompteARebours(root) {
   const node = root.querySelector('#hint-countdown');
   if (!node) return;
-  if (minuterie.reveles >= DELAI_INDICES.length) {
-    node.textContent = 'Tous les indices sont donnés.';
-    return;
-  }
   const ecoulees = Math.floor((Date.now() - minuterie.depart) / 1000);
-  const prochain = DELAI_INDICES.find((d) => d > ecoulees) - ecoulees;
-  node.innerHTML = `Indice dans <b>${Math.max(0, prochain)} s</b>`;
+  const tempsRestant = Math.max(0, DUREE_TOUR - ecoulees);
+  const minutes = Math.floor(tempsRestant / 60);
+  const secondes = String(tempsRestant % 60).padStart(2, '0');
+  const prochainPalier = DELAI_INDICES.find((d) => d > ecoulees);
+  const indiceTexte =
+    minuterie.reveles < DELAI_INDICES.length && prochainPalier
+      ? `Prochain indice dans <b>${Math.max(0, prochainPalier - ecoulees)} s</b>`
+      : 'Tous les indices sont donnés.';
+  node.innerHTML = `${indiceTexte} <span class="hints-separator">·</span> Temps restant <b>${minutes}:${secondes}</b>`;
+
+  const alerte = root.querySelector('#tour-expire');
+  if (!alerte) return;
+  if (!minuterie.tempsEcoule) {
+    alerte.innerHTML = '';
+  } else if (minuterie.continuerApresTemps) {
+    alerte.innerHTML = '<p class="small muted">Temps écoulé — tu peux continuer à chercher.</p>';
+  } else {
+    alerte.innerHTML = `
+      <div class="timeout-prompt">
+        <strong>Temps écoulé !</strong>
+        <span>Tu veux passer ton tour ?</span>
+        <div class="row">
+          <button class="btn-sm btn-primary" id="passer-temps">Passer mon tour</button>
+          <button class="btn-sm btn-ghost" id="continuer-temps">Continuer à chercher</button>
+        </div>
+      </div>`;
+    alerte.querySelector('#passer-temps').addEventListener('click', () => root.querySelector('#passer-btn')?.click());
+    alerte.querySelector('#continuer-temps').addEventListener('click', () => {
+      minuterie.continuerApresTemps = true;
+      actualiserCompteARebours(root);
+    });
+  }
 }
 
 function boardHtml(game) {

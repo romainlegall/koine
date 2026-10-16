@@ -43,13 +43,14 @@ Un pays déjà cité ne peut plus être rejoué, même plusieurs manches plus ta
 
 ### Indices progressifs
 
-Après 30 secondes sans réponse, le jeu révèle un indice sur un pays encore
-disponible pour la lettre : continent à 30 s, capitale à 60 s, puis les deux
-premières lettres à 90 s. On peut aussi demander l'indice suivant tout de suite.
-Comme plusieurs pays sont toujours valables, l'indice décrit un candidat
-disponible ; le joueur reste libre de proposer un autre pays de la même lettre.
-La liste des 190 pays comprend les continents et capitales nécessaires à ces
-indices.
+Après 30 secondes sans réponse, le jeu révèle progressivement un indice sur un
+pays encore disponible pour la lettre : continent à 30 s, capitale à 60 s, puis
+2, 3 et 4 lettres à 90, 120 et 150 s. On peut aussi demander l'indice suivant
+immédiatement. Le tour dure 3 minutes ; à la fin, l'app propose de passer ou de
+continuer à chercher. Comme plusieurs pays sont toujours valables, l'indice
+décrit un candidat disponible ; le joueur reste libre de proposer un autre pays
+de la même lettre. La liste des 190 pays comprend les continents et capitales
+nécessaires à ces indices.
 
 ### Le récapitulatif de fin de manche
 
