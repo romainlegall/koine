@@ -8,6 +8,7 @@
 
 REPO_DIR="/volume1/docker/koine"
 ENV_FILE="$REPO_DIR/server/env.production"
+COMPOSE_DIR="$REPO_DIR/server"
 DATA_DIR="$REPO_DIR/data"
 
 # shellcheck source=/volume1/docker/koine/server/lib.sh
@@ -129,6 +130,28 @@ elif docker compose version > /dev/null 2>&1; then
 else
     rouge "docker-compose indisponible"
     echo "         Paquet Docker sur le Synology, ou lien vers le binaire compose v2"
+fi
+
+# Sans ce controle, une faute d'indentation dans le YAML n'apparait qu'au
+# moment du build, apres avoir attendu la fin de la construction.
+COMPOSE_CMD=$(command -v docker-compose 2>/dev/null || echo "")
+if [ -z "$COMPOSE_CMD" ] && docker compose version > /dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+fi
+
+if [ -n "$COMPOSE_CMD" ] && [ -f "$COMPOSE_DIR/docker-compose.yml" ]; then
+    # On se fie au code de sortie, pas a la sortie standard : compose v2 ecrit
+    # un avertissement sur stderr pour un fichier parfaitement valide
+    # (« l'attribut version est depreciee »).
+    $COMPOSE_CMD -f "$COMPOSE_DIR/docker-compose.yml" config > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        vert "docker-compose.yml est valide"
+    else
+        rouge "docker-compose.yml est illisible"
+        $COMPOSE_CMD -f "$COMPOSE_DIR/docker-compose.yml" config 2>&1 > /dev/null |
+            head -3 | sed 's/^/           /'
+        echo "         Le build echouerait immediatement. Corriger avant de deployer."
+    fi
 fi
 
 if docker ps 2>/dev/null | grep -q koine; then

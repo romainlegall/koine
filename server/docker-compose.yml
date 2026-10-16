@@ -30,7 +30,7 @@ services:
       - /volume1/docker/koine/data:/app/data
     ports:
       - "3005:4100"
-restart: unless-stopped
+    restart: unless-stopped
     # Plafond volontairement bas : c'est une application de jeu, pas un service
     # exposé. Si un conteneur se met à boucler, il ne doit pas ronger le NAS.
     mem_limit: 256m
